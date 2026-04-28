@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Settings, GraduationCap, FileText, Headphones, Star, Send, CheckCircle2, User } from "lucide-react";
+import {
+  Globe,
+  Users,
+  GraduationCap,
+  FileText,
+  HeadphonesIcon,
+  Star,
+  CheckCircle2,
+  User,
+} from "lucide-react";
 
 const categories = [
-  { id: "website", label: "Website", icon: Globe, description: "Site experience, navigation, bugs" },
-  { id: "admin", label: "Admin", icon: Settings, description: "Operations, communications, processes" },
-  { id: "lectures", label: "Lectures", icon: GraduationCap, description: "Content, delivery, pacing" },
-  { id: "handouts", label: "Handouts", icon: FileText, description: "Materials, clarity, usefulness" },
-  { id: "support", label: "Support", icon: Headphones, description: "Help received, response time" },
+  { id: "website", label: "Website", icon: Globe },
+  { id: "admin", label: "Admin", icon: Users },
+  { id: "lectures", label: "Lectures", icon: GraduationCap },
+  { id: "handouts", label: "Handouts", icon: FileText },
+  { id: "support", label: "Support", icon: HeadphonesIcon },
 ];
 
-// In production this comes from MemberPress / your auth system.
-// For Vercel testing, we hard-code a demo member.
+// Demo member — will be replaced with real WordPress login data later
 const currentMember = {
   id: "demo-001",
   name: "Test Member",
@@ -40,7 +48,6 @@ export default function FeedbackPage() {
 
     setSubmitting(true);
 
-    // Build the submission payload — this structure is ready for the database in Part 7.
     const payload = {
       memberId: currentMember.id,
       memberName: currentMember.name,
@@ -49,16 +56,32 @@ export default function FeedbackPage() {
       subject,
       rating,
       comment,
-      submittedAt: new Date().toISOString(),
     };
 
-    console.log("Submission payload (will save to DB in Part 7):", payload);
+    // Send to API (saves to Neon database)
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    // Simulate a save
-    await new Promise((r) => setTimeout(r, 800));
+      const data = await response.json();
 
-    setSubmitting(false);
-    setSubmitted(true);
+      if (!response.ok) {
+        setError(data.error || "Something went wrong. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+
+      console.log("Feedback saved with ID:", data.id);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError("Could not connect to the server. Please try again.");
+      setSubmitting(false);
+      return;
+    }
   }
 
   function resetForm() {
@@ -67,23 +90,25 @@ export default function FeedbackPage() {
     setRating(0);
     setComment("");
     setSubmitted(false);
+    setSubmitting(false);
     setError("");
   }
 
   if (submitted) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-8 text-center">
-          <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 max-w-md text-center shadow-sm">
+          <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto mb-4" />
           <h1 className="text-2xl font-semibold text-slate-900 mb-2">
             Thank you, {currentMember.name.split(" ")[0]}!
           </h1>
           <p className="text-slate-600 mb-6">
-            Your feedback has been received. We read every submission and use it to improve.
+            Your feedback has been received. We read every submission and use
+            it to improve.
           </p>
           <button
             onClick={resetForm}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors"
+            className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
           >
             Submit another
           </button>
@@ -96,7 +121,7 @@ export default function FeedbackPage() {
     <div className="min-h-screen bg-slate-50 py-10 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="mb-6 text-center">
           <h1 className="text-3xl font-semibold text-slate-900 mb-2">
             Share your feedback
           </h1>
@@ -132,51 +157,32 @@ export default function FeedbackPage() {
                     key={c.id}
                     type="button"
                     onClick={() => setCategory(c.id)}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                    className={`flex flex-col items-center gap-1 p-3 border rounded-lg text-xs font-medium transition ${
                       selected
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <Icon
-                      className={`w-5 h-5 ${
-                        selected ? "text-blue-600" : "text-slate-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs font-medium ${
-                        selected ? "text-blue-700" : "text-slate-700"
-                      }`}
-                    >
-                      {c.label}
-                    </span>
+                    <Icon className="w-5 h-5" />
+                    {c.label}
                   </button>
                 );
               })}
             </div>
-            {category && (
-              <p className="text-xs text-slate-500 mt-2">
-                {categories.find((c) => c.id === category)?.description}
-              </p>
-            )}
           </div>
 
           {/* Subject */}
           <div>
-            <label
-              htmlFor="subject"
-              className="block text-sm font-medium text-slate-900 mb-2"
-            >
+            <label className="block text-sm font-medium text-slate-900 mb-2">
               Subject <span className="text-red-500">*</span>
             </label>
             <input
-              id="subject"
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               maxLength={120}
-              placeholder="e.g. Module 3 lecture pacing, or Login button on mobile"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              placeholder="A short summary (e.g. 'Login button not working')"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="text-xs text-slate-400 mt-1 text-right">
               {subject.length}/120
@@ -185,24 +191,24 @@ export default function FeedbackPage() {
 
           {/* Rating */}
           <div>
-            <label className="block text-sm font-medium text-slate-900 mb-3">
+            <label className="block text-sm font-medium text-slate-900 mb-2">
               How would you rate this? <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((n) => {
-                const filled = (hoverRating || rating) >= n;
+                const active = (hoverRating || rating) >= n;
                 return (
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setRating(n)}
                     onMouseEnter={() => setHoverRating(n)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 transition-transform hover:scale-110"
+                    onClick={() => setRating(n)}
+                    className="p-1"
                   >
                     <Star
-                      className={`w-9 h-9 transition-colors ${
-                        filled
+                      className={`w-8 h-8 transition ${
+                        active
                           ? "fill-amber-400 text-amber-400"
                           : "text-slate-300"
                       }`}
@@ -212,7 +218,7 @@ export default function FeedbackPage() {
               })}
               {rating > 0 && (
                 <span className="ml-3 self-center text-sm text-slate-600">
-                  {["", "Poor", "Fair", "Good", "Great", "Excellent"][rating]}
+                  {rating} of 5
                 </span>
               )}
             </div>
@@ -220,20 +226,16 @@ export default function FeedbackPage() {
 
           {/* Comment */}
           <div>
-            <label
-              htmlFor="comment"
-              className="block text-sm font-medium text-slate-900 mb-2"
-            >
+            <label className="block text-sm font-medium text-slate-900 mb-2">
               Your feedback <span className="text-red-500">*</span>
             </label>
             <textarea
-              id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={5}
               maxLength={2000}
-              placeholder="Tell us what's working, what isn't, and anything specific that would help..."
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+              rows={5}
+              placeholder="Tell us what worked, what didn't, or what you'd like to see..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
             <div className="text-xs text-slate-400 mt-1 text-right">
               {comment.length}/2000
@@ -242,7 +244,7 @@ export default function FeedbackPage() {
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-3 py-2">
               {error}
             </div>
           )}
@@ -251,22 +253,15 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full px-5 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? (
-              <>Submitting...</>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Submit feedback
-              </>
-            )}
+            {submitting ? "Submitting..." : "Submit feedback"}
           </button>
-
-          <p className="text-xs text-center text-slate-400">
-            Your feedback is reviewed by the team. We typically respond within 5 working days.
-          </p>
         </form>
+
+        <p className="text-xs text-slate-400 text-center mt-6">
+          Your feedback is reviewed by our team. We may follow up by email.
+        </p>
       </div>
     </div>
   );
